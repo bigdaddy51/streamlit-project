@@ -147,7 +147,7 @@ def get_program_details(db, program_code):
         result = cursor.fetchone()
         if result and result[0] is not None:
             coacode_str = str(result[0]).strip()
-            logging.info(f"Fetched COACODE for Program {program_code}: '{coacode_str}'")
+            
             if coacode_str == '':
                 logging.warning(f"COACODE for Program {program_code} is empty.")
                 return 0.0  # Default value when COACODE is empty
@@ -287,6 +287,9 @@ def run_check():
                 writer.writerow(header)
 
                 processed_count = 0
+                total_records = len(enrollments)
+                progress_text = "Running check. Please wait."
+                my_bar = st.progress(0, text=progress_text)
 
                 # Loop through each student and perform checks
                 for enrollment in enrollments:
@@ -300,39 +303,38 @@ def run_check():
 
                     # Check account ledger for tuition
                     tuition_amount = check_account_ledger(db, student_id, term_start_date, term_end_date)
-                    logging.info(f"Tuition for Student {student_id}: {tuition_amount}")
+                    
 
                     # Check scheduled funds for the current term
                     term_scheduled_funds = get_term_scheduled_funds(db, student_id, term_start_date, term_end_date)
-                    logging.info(f"Term Scheduled Funds for Student {student_id}: {term_scheduled_funds}")
+                    
 
                     # Check total scheduled funds for the entire enrollment
                     total_scheduled_funds = get_total_scheduled_funds(db, student_id, enrollment_start_date)
-                    logging.info(f"Total Scheduled Funds for Student {student_id}: {total_scheduled_funds}")
+                   
 
                     # Fetch total credits for the current term
                     total_credits = get_total_credits(db, student_id, term_start_date, term_end_date)
-                    logging.info(f"Total Credits for Student {student_id}: {total_credits}")
+                   
 
                     # Fetch total enrollment credits
                     total_enrollment_credits = get_total_enrollment_credits(db, student_id)
-                    logging.info(f"Total Enrollment Credits for Student {student_id}: {total_enrollment_credits}")
+                    
 
                     # Get program details (COACODE as price per credit)
                     price_per_credit = get_program_details(db, program_code)
-                    logging.info(f"Program Details for {program_code} - Price per Credit: {price_per_credit}")
+                   
 
                     # Calculate semester price
                     semester_price = float(total_credits) * price_per_credit if price_per_credit else 0.0
-                    logging.info(f"Semester Price for Student {student_id}: {semester_price}")
+                    
 
                     # Calculate overall price
                     overall_price = float(total_enrollment_credits) * price_per_credit if price_per_credit else 0.0
-                    logging.info(f"Overall Price for Student {student_id}: {overall_price}")
-
+                   
                     # Calculate remaining need
                     remaining_need = overall_price - total_scheduled_funds
-                    logging.info(f"Remaining Need for Student {student_id}: {remaining_need}")
+                   
 
                     # Create the link
                     link = f"https://mediatechcloud.com/index.php?name={student_id}"
@@ -358,10 +360,11 @@ def run_check():
                     # Write the student data to the CSV file
                     writer.writerow(row_data)
 
-                    # Update and print progress after every 10 students
+                    # Update and print progress after every student
                     processed_count += 1
-                    if processed_count % 10 == 0:
-                        logging.info(f"Processed {processed_count} students.")
+                    percent_complete = int((processed_count / total_records) * 100)
+                    progress_text = f"Processing record {processed_count} of {total_records}. Please wait."
+                    my_bar.progress(percent_complete, text=progress_text)
 
                 logging.info(f"CSV file '{csv_file}' created successfully with {processed_count} records.")
 
