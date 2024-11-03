@@ -16,6 +16,18 @@ st.set_page_config(
     initial_sidebar_state="expanded",  # Can be "auto", "expanded", "collapsed"
 )
 
+
+css = """
+<style>
+.st-ay:hover {
+    cursor: pointer !important;
+    }
+
+</style>
+"""
+# Apply the CSS
+st.markdown(css, unsafe_allow_html=True)
+
 # -------------------- Sidebar --------------------
 st.sidebar.title("Navigation")
 app_mode = st.sidebar.selectbox("Choose the section:", [

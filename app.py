@@ -17,6 +17,19 @@ logging.basicConfig(
     ]
 )
 
+css = """
+<style>
+.st-ay:hover {
+    cursor: pointer !important;
+    }
+
+</style>
+"""
+# Apply the CSS
+st.markdown(css, unsafe_allow_html=True)
+
+
+
 # Database connection function
 def connect_to_db():
     try:
