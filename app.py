@@ -299,8 +299,8 @@ def run_check():
 
                 processed_count = 0
                 total_records = len(enrollments)
-                progress_text = "Running check. Please wait."
-                my_bar = st.progress(0, text=progress_text)
+                progress_text_placeholder = st.empty()
+                my_bar = st.progress(0)
 
                 for enrollment in enrollments:
                     student_id = enrollment['student_id']
@@ -345,7 +345,8 @@ def run_check():
                     processed_count += 1
                     percent_complete = int((processed_count / total_records) * 100)
                     progress_text = f"Processing record {processed_count} of {total_records}. Please wait."
-                    my_bar.progress(percent_complete, text=progress_text)
+                    progress_text_placeholder.text(progress_text)
+                    my_bar.progress(percent_complete)
                     time.sleep(0.1)  # Add a short delay to allow the UI to update
 
                 logging.info(f"CSV file '{csv_file}' created successfully with {processed_count} records.")

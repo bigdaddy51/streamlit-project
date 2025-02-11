@@ -7103,3 +7103,50 @@
 2025-02-11 08:06:39,721 - INFO - CSV file 'student_funds.csv' created successfully with 223 records.
 2025-02-11 08:06:39,730 - INFO - Duplicate CSV file 'duplicate_student_funds.csv' created successfully with 54 records.
 2025-02-11 08:06:39,733 - INFO - Database connection closed.
+2025-02-11 08:18:46,990 - INFO - Successfully connected to the database.
+2025-02-11 08:18:46,993 - INFO - Current Date: 2025-02-11
+2025-02-11 08:18:47,064 - INFO - Term Start Date: 2025-01-06, Term End Date: 2025-04-20
+2025-02-11 08:18:47,138 - INFO - Number of students found: 223
+2025-02-11 08:18:47,141 - INFO - Processing Student ID: 000002347, Enrollment Start Date: 2024-08-26, Program: AASDF_ONL, Status: C
+2025-02-11 08:18:47,673 - INFO - Processing Student ID: 101082400, Enrollment Start Date: 2024-05-06, Program: AASDF_ONL, Status: C
+2025-02-11 08:18:48,198 - INFO - Processing Student ID: 101082400, Enrollment Start Date: 2024-05-06, Program: AASDF, Status: X
+2025-02-11 08:18:48,735 - INFO - Processing Student ID: 102202381, Enrollment Start Date: 2024-08-26, Program: AASDF, Status: C
+2025-02-11 08:18:49,274 - INFO - Processing Student ID: 103741480, Enrollment Start Date: 2025-01-06, Program: AASDF_ONL, Status: C
+2025-02-11 08:18:49,804 - INFO - Processing Student ID: 106672135, Enrollment Start Date: 2025-01-06, Program: AASRA, Status: C
+2025-02-11 08:18:50,333 - INFO - Processing Student ID: 107280784, Enrollment Start Date: 2025-01-06, Program: AASDF_ONL, Status: C
+2025-02-11 08:18:50,859 - INFO - Processing Student ID: 108242160, Enrollment Start Date: 2024-05-06, Program: AASDF, Status: C
+2025-02-11 08:18:51,384 - INFO - Processing Student ID: 108242160, Enrollment Start Date: 2024-01-08, Program: AASDF, Status: X
+2025-02-11 08:18:51,923 - INFO - Processing Student ID: 110480279, Enrollment Start Date: 2024-08-26, Program: AASRA, Status: C
+2025-02-11 08:18:52,452 - INFO - Processing Student ID: 118737028, Enrollment Start Date: 2024-05-06, Program: AASRA-ONL, Status: C
+2025-02-11 08:18:52,980 - INFO - Processing Student ID: 121001571, Enrollment Start Date: 2024-05-06, Program: AASRA, Status: C
+2025-02-11 08:18:53,508 - INFO - Processing Student ID: 122869661, Enrollment Start Date: 2024-08-26, Program: AASRA-ONL, Status: C
+2025-02-11 08:18:54,063 - INFO - Processing Student ID: 125124933, Enrollment Start Date: 2025-01-06, Program: AASRA, Status: C
+2025-02-11 08:18:54,589 - INFO - Processing Student ID: 125751749, Enrollment Start Date: 2024-05-06, Program: AASRA, Status: C
+2025-02-11 08:18:55,114 - INFO - Processing Student ID: 126037521, Enrollment Start Date: 2023-08-28, Program: AASRA, Status: C
+2025-02-11 08:18:55,638 - INFO - Processing Student ID: 134009283, Enrollment Start Date: 2024-05-06, Program: AASRA, Status: C
+2025-02-11 08:18:56,166 - INFO - Processing Student ID: 136941692, Enrollment Start Date: 2025-01-06, Program: AASDF_ONL, Status: C
+2025-02-11 08:18:56,694 - INFO - Processing Student ID: 146140018, Enrollment Start Date: 2024-01-08, Program: AASRA, Status: C
+2025-02-11 08:18:57,223 - INFO - Processing Student ID: 147992280, Enrollment Start Date: 2024-08-26, Program: AASRA, Status: C
+2025-02-11 08:18:57,745 - INFO - Processing Student ID: 148758839, Enrollment Start Date: 2024-05-06, Program: AASRA, Status: C
+2025-02-11 08:18:58,272 - INFO - Processing Student ID: 157361317, Enrollment Start Date: 2025-01-06, Program: AASDF_ONL, Status: C
+2025-02-11 08:18:58,799 - INFO - Processing Student ID: 159683574, Enrollment Start Date: 2025-01-06, Program: BPD_ONL, Status: C
+2025-02-11 08:18:59,335 - INFO - Processing Student ID: 162640468, Enrollment Start Date: 2025-01-06, Program: AASRA, Status: C
+2025-02-11 08:18:59,859 - INFO - Processing Student ID: 168434297, Enrollment Start Date: 2024-08-26, Program: AASRA, Status: C
+2025-02-11 08:19:00,390 - INFO - Processing Student ID: 168826584, Enrollment Start Date: 2024-08-26, Program: AASDF, Status: C
+2025-02-11 08:19:00,917 - INFO - Processing Student ID: 171674846, Enrollment Start Date: 2025-01-06, Program: AASRA, Status: C
+2025-02-11 08:19:01,443 - INFO - Processing Student ID: 171674846, Enrollment Start Date: 2023-08-28, Program: AASRA, Status: X
+2025-02-11 08:19:01,979 - INFO - Processing Student ID: 173062723, Enrollment Start Date: 2024-01-08, Program: AASRA, Status: C
+2025-02-11 08:19:02,503 - INFO - Processing Student ID: 177077253, Enrollment Start Date: 2024-08-26, Program: AASDF, Status: C
+2025-02-11 08:19:03,033 - INFO - Processing Student ID: 178364978, Enrollment Start Date: 2024-08-26, Program: AASRA, Status: C
+2025-02-11 08:19:03,581 - INFO - Processing Student ID: 182464240, Enrollment Start Date: 2025-01-06, Program: AASRA, Status: C
+2025-02-11 08:19:04,108 - INFO - Processing Student ID: 189143000, Enrollment Start Date: 2024-01-08, Program: AASDF, Status: C
+2025-02-11 08:19:04,635 - INFO - Processing Student ID: 189319615, Enrollment Start Date: 2024-08-26, Program: AASRA, Status: C
+2025-02-11 08:19:05,158 - INFO - Processing Student ID: 192630859, Enrollment Start Date: 2024-01-08, Program: AASRA, Status: C
+2025-02-11 08:19:05,682 - INFO - Processing Student ID: 197259319, Enrollment Start Date: 2024-05-06, Program: DFVP, Status: C
+2025-02-11 08:19:06,210 - INFO - Processing Student ID: 200610529, Enrollment Start Date: 2025-01-06, Program: AASDF_ONL, Status: C
+2025-02-11 08:19:06,738 - INFO - Processing Student ID: 202803817, Enrollment Start Date: 2025-01-06, Program: DFVP_ONL, Status: C
+2025-02-11 08:19:07,269 - INFO - Processing Student ID: 208140204, Enrollment Start Date: 2025-01-06, Program: AASRA-ONL, Status: C
+2025-02-11 08:19:07,793 - INFO - Processing Student ID: 213680555, Enrollment Start Date: 2025-01-06, Program: AASRA, Status: C
+2025-02-11 08:19:08,324 - INFO - Processing Student ID: 222299636, Enrollment Start Date: 2024-05-06, Program: AASRA, Status: C
+2025-02-11 08:19:08,850 - INFO - Processing Student ID: 223360560, Enrollment Start Date: 2025-01-06, Program: AASRA-ONL, Status: C
+2025-02-11 08:19:09,377 - INFO - Processing Student ID: 229161048, Enrollment Start Date: 2025-01-06, Program: RA15, Status: C
