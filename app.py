@@ -128,24 +128,33 @@ def get_term_dates(db, current_date):
         cursor.close()
 
 def get_enrollments(db, limit=None):
-    """Fetch all enrollments for students with specific statuses and enrollment type."""
+    """Fetch the most recent enrollment for each student with specific statuses ("C","P","W","X") and type 'E'."""
     cursor = db.cursor(buffered=True)
     try:
         limit_clause = f"LIMIT {limit}" if limit else ""
-        query = f'''
-        SELECT e.ID, e.STARTDATE, e.PROGRAM, e.STATUS
-        FROM `enrollments` e
-        WHERE e.`STATUS` IN ("C", "P", "W", "X")
-          AND e.`TYPE` = 'E'
+        query = f"""
+        SELECT e.ID, e.STARTDATE, e.PROGRAM, e.STATUS, e.ENROLLMENTNUMBER
+        FROM enrollments e
+        JOIN (
+            SELECT ID, MAX(ENROLLMENTNUMBER) AS maxEnroll
+            FROM enrollments
+            WHERE STATUS IN ("C", "P", "W", "X") AND TYPE = 'E'
+            GROUP BY ID
+        ) latest ON e.ID = latest.ID AND e.ENROLLMENTNUMBER = latest.maxEnroll
+        WHERE e.STATUS IN ("C", "P", "W", "X")
         {limit_clause};
-        '''
+        """
         cursor.execute(query)
         results = cursor.fetchall()
         enrollments = [
-            {'student_id': row[0], 'start_date': row[1], 'program': row[2], 'status': row[3]}
+            {'student_id': row[0],
+             'start_date': row[1],
+             'program': row[2],
+             'status': row[3],
+             'enrollment_number': row[4]}
             for row in results
         ]
-        logging.info(f"Number of students found: {len(enrollments)}")
+        logging.info(f"Number of most recent enrollments found: {len(enrollments)}")
         return enrollments
     except mysql.connector.Error as e:
         logging.error(f"Error in get_enrollments: {e}")
@@ -234,18 +243,29 @@ def get_term_scheduled_funds(db, student_id, term_start_date, term_end_date):
     finally:
         cursor.close()
 
-def get_total_scheduled_funds(db, student_id, enrollment_start_date):
-    """Check total scheduled funds for the entire enrollment for a student."""
+def get_total_scheduled_funds(db, student_id):
+    """Check total scheduled funds for the most recent enrollment (by enrollment number) for a student."""
+    enrollment_number = get_latest_enrollment_number(db, student_id)
+    if enrollment_number is None:
+        return 0.0
+
     cursor = db.cursor(buffered=True)
     try:
         query = '''
         SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
-        FROM `disbursements`
-        WHERE `DISBSTATUS` NOT IN ("X")
-          AND `ID` = %s
-          AND `DATESCHED` >= %s;
+        FROM disbursements
+        WHERE DISBSTATUS NOT IN ("X")
+          AND ID = %s
+          AND ENROLLMENTNUMBER = %s;
         '''
-        cursor.execute(query, (student_id, enrollment_start_date))
+        query2 = '''
+        SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
+        FROM disbursements
+        WHERE ID = %s
+          AND ENROLLMENTNUMBER = %s;
+        '''
+
+        cursor.execute(query, (student_id, enrollment_number))
         result = cursor.fetchone()
         if result and result[0] is not None:
             return float(result[0])
@@ -253,6 +273,46 @@ def get_total_scheduled_funds(db, student_id, enrollment_start_date):
     except mysql.connector.Error as e:
         logging.error(f"Error in get_total_scheduled_funds for Student ID {student_id}: {e}")
         return 0.0
+    finally:
+        cursor.close()
+
+def get_latest_enrollment_number(db, student_id):
+    """Return the most recent (largest) enrollment number for the given student."""
+    cursor = db.cursor(buffered=True)
+    try:
+        query = "SELECT MAX(ENROLLMENTNUMBER) FROM enrollments WHERE ID = %s;"
+        cursor.execute(query, (student_id,))
+        result = cursor.fetchone()
+        if result and result[0] is not None:
+            return result[0]
+        else:
+            logging.warning(f"No enrollment number found for Student ID {student_id}.")
+            return None
+    except mysql.connector.Error as e:
+        logging.error(f"Error in get_latest_enrollment_number for Student ID {student_id}: {e}")
+        return None
+    finally:
+        cursor.close()
+
+def get_student_name(db, student_id):
+    """Return the first name and last name for the given student ID."""
+    cursor = db.cursor(buffered=True)
+    try:
+        query = '''
+        SELECT FNAME, LNAME
+        FROM students
+        WHERE ID = %s;
+        '''
+        cursor.execute(query, (student_id,))
+        result = cursor.fetchone()
+        if result:
+            return result[0], result[1]
+        else:
+            logging.warning(f"No name found for Student ID {student_id}.")
+            return "", ""
+    except mysql.connector.Error as e:
+        logging.error(f"Error retrieving name for Student ID {student_id}: {e}")
+        return "", ""
     finally:
         cursor.close()
 
@@ -280,6 +340,8 @@ def run_check():
                 writer = csv.writer(file)
                 header = [
                     "Student ID",
+                    "First Name",
+                    "Last Name",
                     "Program",
                     "Start Date",
                     "Term Code",
@@ -312,7 +374,7 @@ def run_check():
 
                     tuition_amount = check_account_ledger(db, student_id, term_start_date, term_end_date)
                     term_scheduled_funds = get_term_scheduled_funds(db, student_id, term_start_date, term_end_date)
-                    total_scheduled_funds = get_total_scheduled_funds(db, student_id, enrollment_start_date)
+                    total_scheduled_funds = get_total_scheduled_funds(db, student_id)
                     total_credits = get_total_credits(db, student_id, term_start_date, term_end_date)
                     total_enrollment_credits = get_total_enrollment_credits(db, student_id)
                     price_per_credit = get_program_details(db, program_code)
@@ -323,8 +385,11 @@ def run_check():
                     # Create the link as plain text (will be converted to clickable HTML later)
                     link = f"https://mediatechcloud.com/index.php?name={student_id}"
 
+                    first_name, last_name = get_student_name(db, student_id)
                     row_data = [
                         student_id,
+                        first_name,
+                        last_name,
                         program_code,
                         enrollment_start_date,
                         term_code,
@@ -422,14 +487,15 @@ def main():
                 {html_table}
                 <script>
                   $(document).ready(function() {{
-                      $('#myTable').DataTable({{
+                      var table = $('#myTable').DataTable({{
                         "searching": false,   // disable DataTables search (using our external search box)
                         "paging": false,      // disable pagination to display all records
                         "scrollY": "550px",   // enable vertical scrolling with a 550px view area
                         "scrollX": true,      // enable horizontal scrolling for proper column alignment
-                        "autoWidth": false,   // disable automatic column width calculation
+                        "autoWidth": false,   // disable automatic column width calculation      
                         "scrollCollapse": true
                       }});
+                      table.columns.adjust().draw();  // Adjust column widths after initialization
                   }});
                 </script>
               </body>
