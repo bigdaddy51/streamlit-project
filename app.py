@@ -7,6 +7,7 @@ import logging
 import os
 from collections import defaultdict
 import streamlit.components.v1 as components
+import time  # Ensure time is imported; you can also add this at the top of your file.
 
 # Set the page layout to wide
 st.set_page_config(layout="wide")
@@ -345,6 +346,7 @@ def run_check():
                     percent_complete = int((processed_count / total_records) * 100)
                     progress_text = f"Processing record {processed_count} of {total_records}. Please wait."
                     my_bar.progress(percent_complete, text=progress_text)
+                    time.sleep(0.1)  # Add a short delay to allow the UI to update
 
                 logging.info(f"CSV file '{csv_file}' created successfully with {processed_count} records.")
 
