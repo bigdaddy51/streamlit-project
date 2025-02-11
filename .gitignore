@@ -1,4 +1,6 @@
 credentials.yaml
 generate_cookie_key.py
 hash_passwords.py
-app.py
+student_funds.csv
+student_funds.log
+duplicate_student_funds.csv
