@@ -438,7 +438,7 @@ def main():
 
             components.html(html_string, height=600)
             
-        except FileNotFoundError:
+        except (FileNotFoundError, pd.errors.EmptyDataError):
             st.error("No data found. Please run the check first.")
 
     elif page == "Download CSV":
