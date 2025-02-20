@@ -87,7 +87,7 @@ def get_total_enrollment_credits(db, student_id):
         SELECT CREDIT as total_enrollment_credits
         FROM `enrollments`
         WHERE `ID` = %s
-          AND `STATUS` IN ("C", "P", "W", "X")
+          AND `STATUS` IN ("C", "P", "W","L")
           AND `TYPE` = 'E'
         LIMIT 1;
         '''
@@ -138,10 +138,10 @@ def get_enrollments(db, limit=None):
         JOIN (
             SELECT ID, MAX(ENROLLMENTNUMBER) AS maxEnroll
             FROM enrollments
-            WHERE STATUS IN ("C", "P", "W", "X") AND TYPE = 'E'
+            WHERE STATUS IN ("C", "P", "W","L") AND TYPE = 'E'
             GROUP BY ID
         ) latest ON e.ID = latest.ID AND e.ENROLLMENTNUMBER = latest.maxEnroll
-        WHERE e.STATUS IN ("C", "P", "W", "X")
+        WHERE e.STATUS IN ("C", "P", "W","L")
         {limit_clause};
         """
         cursor.execute(query)
@@ -220,6 +220,16 @@ def check_account_ledger(db, student_id, term_start_date, term_end_date):
     finally:
         cursor.close()
 
+
+
+#WHERE `DISBSTATUS` NOT IN ("X")
+#AND `ID` = %s
+#AND `DATESCHED` >= %s
+#AND `DATESCHED` <= %s;
+
+
+
+
 def get_term_scheduled_funds(db, student_id, term_start_date, term_end_date):
     """Check scheduled funds for the current term for a student."""
     cursor = db.cursor(buffered=True)
@@ -227,8 +237,7 @@ def get_term_scheduled_funds(db, student_id, term_start_date, term_end_date):
         query = '''
         SELECT SUM(NETAMOUNTSCHED) as term_scheduled_funds
         FROM `disbursements`
-        WHERE `DISBSTATUS` NOT IN ("X")
-          AND `ID` = %s
+        WHERE `ID` = %s
           AND `DATESCHED` >= %s
           AND `DATESCHED` <= %s;
         '''
@@ -243,6 +252,13 @@ def get_term_scheduled_funds(db, student_id, term_start_date, term_end_date):
     finally:
         cursor.close()
 
+
+#WHERE DISBSTATUS NOT IN ("X")
+#AND ID = %s
+#AND ENROLLMENTNUMBER = %s;
+
+
+
 def get_total_scheduled_funds(db, student_id):
     """Check total scheduled funds for the most recent enrollment (by enrollment number) for a student."""
     enrollment_number = get_latest_enrollment_number(db, student_id)
@@ -254,8 +270,7 @@ def get_total_scheduled_funds(db, student_id):
         query = '''
         SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
         FROM disbursements
-        WHERE DISBSTATUS NOT IN ("X")
-          AND ID = %s
+        WHERE ID = %s
           AND ENROLLMENTNUMBER = %s;
         '''
         query2 = '''
@@ -526,6 +541,57 @@ def main():
                 )
         except FileNotFoundError:
             st.error("CSV files not found. Please run the check first.")
+
+from flask import Flask, jsonify, request
+app = Flask(__name__)
+
+@app.route("/net_profit_by_class/<date_macro>/<qb_class>")
+def fetch_net_profit_by_class(date_macro, qb_class):
+    """
+    Get net profit for a specific class (Dallas School or Houston School)
+    Example: /net_profit_by_class/custom/Dallas%20School?start_date=2024-01-01&end_date=2024-03-31
+    """
+    access_token = Token.get_current_access_token()
+    if not access_token:
+        return jsonify({"error": "Unable to retrieve a valid access token"}), 500
+
+    url = f'https://quickbooks.api.intuit.com/v3/company/{COMPANY_ID}/reports/ProfitAndLoss?minorversion=14'
+    
+    # Add class filter
+    url += f'&class={urllib.parse.quote(qb_class)}'
+    
+    # Handle custom date range
+    if date_macro == 'custom':
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        if not (start_date and end_date):
+            return jsonify({"error": "start_date and end_date are required for custom date range"}), 400
+        url += f'&start_date={start_date}&end_date={end_date}'
+    else:
+        url += f'&date_macro={date_macro}'
+
+    headers = {
+        'Authorization': f'Bearer {access_token}',
+        'Accept': 'application/json',
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        response.raise_for_status()
+        data = response.json()
+
+        rows = data.get("Rows", {}).get("Row", [])
+        for row in rows:
+            if row.get("group") == "NetIncome":
+                net_income = row.get("Summary", {}).get("ColData", [])[1].get("value")
+                if net_income is not None:
+                    net_income_float = float(net_income)
+                    formatted_net_income = '${:,.2f}'.format(net_income_float)
+                    return jsonify({"net_profit": formatted_net_income})
+
+        return jsonify({"error": "Net income data not found in the response"}), 404
+    except requests.exceptions.RequestException as e:
+        return jsonify({"error": f"Unable to get net profit: {str(e)}"}), 500
 
 if __name__ == '__main__':
     main()
