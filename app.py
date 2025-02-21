@@ -7,20 +7,10 @@ import logging
 import os
 from collections import defaultdict
 import streamlit.components.v1 as components
-import time  # Ensure time is imported; you can also add this at the top of your file.
+import time
 
-# Set the page layout to wide
+# Set the page layout to wide - this must be the first Streamlit command
 st.set_page_config(layout="wide")
-
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,  # Change to DEBUG for more detailed logs
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler("student_funds.log"),
-        logging.StreamHandler()
-    ]
-)
 
 # Additional CSS to change cursor style on hover
 css = """
@@ -31,6 +21,28 @@ css = """
 </style>
 """
 st.markdown(css, unsafe_allow_html=True)
+
+# Initialize FILTER_DISBSTATUS_X in session state if it doesn't exist
+if 'FILTER_DISBSTATUS_X' not in st.session_state:
+    st.session_state.FILTER_DISBSTATUS_X = True
+
+# Add checkbox to control FILTER_DISBSTATUS_X
+FILTER_DISBSTATUS_X = st.sidebar.checkbox(
+    "Filter DISBSTATUS 'X'",
+    value=st.session_state.FILTER_DISBSTATUS_X,
+    help="When checked, excludes records where DISBSTATUS is 'X'"
+)
+st.session_state.FILTER_DISBSTATUS_X = FILTER_DISBSTATUS_X
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,  # Change to DEBUG for more detailed logs
+    format='%(asctime)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler("student_funds.log"),
+        logging.StreamHandler()
+    ]
+)
 
 # ---------------- Database Functions ---------------- #
 
@@ -87,7 +99,7 @@ def get_total_enrollment_credits(db, student_id):
         SELECT CREDIT as total_enrollment_credits
         FROM `enrollments`
         WHERE `ID` = %s
-          AND `STATUS` IN ("C", "P", "W","L")
+          AND `STATUS` IN ("C", "P", "W")
           AND `TYPE` = 'E'
         LIMIT 1;
         '''
@@ -128,7 +140,7 @@ def get_term_dates(db, current_date):
         cursor.close()
 
 def get_enrollments(db, limit=None):
-    """Fetch the most recent enrollment for each student with specific statuses ("C","P","W","X") and type 'E'."""
+    
     cursor = db.cursor(buffered=True)
     try:
         limit_clause = f"LIMIT {limit}" if limit else ""
@@ -138,10 +150,10 @@ def get_enrollments(db, limit=None):
         JOIN (
             SELECT ID, MAX(ENROLLMENTNUMBER) AS maxEnroll
             FROM enrollments
-            WHERE STATUS IN ("C", "P", "W","L") AND TYPE = 'E'
+            WHERE STATUS IN ("C", "P", "W") AND TYPE = 'E'
             GROUP BY ID
         ) latest ON e.ID = latest.ID AND e.ENROLLMENTNUMBER = latest.maxEnroll
-        WHERE e.STATUS IN ("C", "P", "W","L")
+        WHERE e.STATUS IN ("C", "P", "W")
         {limit_clause};
         """
         cursor.execute(query)
@@ -220,22 +232,23 @@ def check_account_ledger(db, student_id, term_start_date, term_end_date):
     finally:
         cursor.close()
 
-
-
-#WHERE `DISBSTATUS` NOT IN ("X")
-#AND `ID` = %s
-#AND `DATESCHED` >= %s
-#AND `DATESCHED` <= %s;
-
-
-
-
 def get_term_scheduled_funds(db, student_id, term_start_date, term_end_date):
     """Check scheduled funds for the current term for a student."""
     cursor = db.cursor(buffered=True)
     try:
-        query = '''
-        SELECT SUM(NETAMOUNTSCHED) as term_scheduled_funds
+        
+        if FILTER_DISBSTATUS_X:
+            query = '''
+            SELECT SUM(NETAMOUNTSCHED) as term_scheduled_funds
+            FROM `disbursements`
+            WHERE `DISBSTATUS` NOT IN ("X")
+              AND `ID` = %s
+              AND `DATESCHED` >= %s
+              AND `DATESCHED` <= %s;
+        '''
+        else:
+            query = '''
+            SELECT SUM(NETAMOUNTSCHED) as term_scheduled_funds
         FROM `disbursements`
         WHERE `ID` = %s
           AND `DATESCHED` >= %s
@@ -252,13 +265,6 @@ def get_term_scheduled_funds(db, student_id, term_start_date, term_end_date):
     finally:
         cursor.close()
 
-
-#WHERE DISBSTATUS NOT IN ("X")
-#AND ID = %s
-#AND ENROLLMENTNUMBER = %s;
-
-
-
 def get_total_scheduled_funds(db, student_id):
     """Check total scheduled funds for the most recent enrollment (by enrollment number) for a student."""
     enrollment_number = get_latest_enrollment_number(db, student_id)
@@ -267,17 +273,21 @@ def get_total_scheduled_funds(db, student_id):
 
     cursor = db.cursor(buffered=True)
     try:
-        query = '''
-        SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
-        FROM disbursements
-        WHERE ID = %s
+        
+        if FILTER_DISBSTATUS_X:
+            query = '''
+            SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
+            FROM disbursements
+            WHERE DISBSTATUS NOT IN ("X")
+          AND ID = %s
           AND ENROLLMENTNUMBER = %s;
         '''
-        query2 = '''
-        SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
-        FROM disbursements
-        WHERE ID = %s
-          AND ENROLLMENTNUMBER = %s;
+        else:
+            query = '''
+            SELECT SUM(NETAMOUNTSCHED) as total_scheduled_funds
+            FROM disbursements
+           WHERE ID = %s
+             AND ENROLLMENTNUMBER = %s;
         '''
 
         cursor.execute(query, (student_id, enrollment_number))
@@ -494,23 +504,57 @@ def main():
                 <script src="https://code.jquery.com/jquery-3.5.1.min.js"></script>
                 <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
                 <style>
-                  /* Force table to fill the container width */
-                  #myTable {{ width: 100%; }}
-                </style>
+                 #myTable {{
+                        width: 100% !important;
+                        margin: 0 !important;
+                    }}
+                    .dataTables_wrapper {{
+                        position: relative;
+                    }}
+                    .dataTables_scrollHead {{
+                        position: sticky !important;
+                        top: 0;
+                        z-index: 1;
+                        background: white;
+                    }}
+                    .dataTables_scrollBody {{
+                        position: relative;
+                    }}
+                    th, td {{
+                        white-space: nowrap;
+                        padding: 8px !important;
+                    }}                </style>
               </head>
               <body>
                 {html_table}
-                <script>
+               <script>
                   $(document).ready(function() {{
                       var table = $('#myTable').DataTable({{
-                        "searching": false,   // disable DataTables search (using our external search box)
-                        "paging": false,      // disable pagination to display all records
-                        "scrollY": "550px",   // enable vertical scrolling with a 550px view area
-                        "scrollX": true,      // enable horizontal scrolling for proper column alignment
-                        "autoWidth": false,   // disable automatic column width calculation      
-                        "scrollCollapse": true
+                        "searching": false,
+                        "paging": false,
+                        "scrollY": "550px",
+                        "scrollX": true,
+                        "autoWidth": true,
+                        "scrollCollapse": true,
+                        "fixedHeader": true,
+                        "columnDefs": [{{
+                            "targets": "_all",
+                            "className": "dt-head-left"  // Align header text left
+                        }}]
                       }});
-                      table.columns.adjust().draw();  // Adjust column widths after initialization
+                      
+                      // Initial column adjustment
+                      table.columns.adjust().draw();
+                      
+                      // Handle window resize
+                      $(window).on('resize', function() {{
+                          table.columns.adjust();
+                      }});
+                      
+                      // Handle container resize (for Streamlit)
+                      new ResizeObserver(() => {{
+                          table.columns.adjust();
+                      }}).observe(document.querySelector('.dataTables_wrapper'));
                   }});
                 </script>
               </body>
@@ -541,57 +585,6 @@ def main():
                 )
         except FileNotFoundError:
             st.error("CSV files not found. Please run the check first.")
-
-from flask import Flask, jsonify, request
-app = Flask(__name__)
-
-@app.route("/net_profit_by_class/<date_macro>/<qb_class>")
-def fetch_net_profit_by_class(date_macro, qb_class):
-    """
-    Get net profit for a specific class (Dallas School or Houston School)
-    Example: /net_profit_by_class/custom/Dallas%20School?start_date=2024-01-01&end_date=2024-03-31
-    """
-    access_token = Token.get_current_access_token()
-    if not access_token:
-        return jsonify({"error": "Unable to retrieve a valid access token"}), 500
-
-    url = f'https://quickbooks.api.intuit.com/v3/company/{COMPANY_ID}/reports/ProfitAndLoss?minorversion=14'
-    
-    # Add class filter
-    url += f'&class={urllib.parse.quote(qb_class)}'
-    
-    # Handle custom date range
-    if date_macro == 'custom':
-        start_date = request.args.get('start_date')
-        end_date = request.args.get('end_date')
-        if not (start_date and end_date):
-            return jsonify({"error": "start_date and end_date are required for custom date range"}), 400
-        url += f'&start_date={start_date}&end_date={end_date}'
-    else:
-        url += f'&date_macro={date_macro}'
-
-    headers = {
-        'Authorization': f'Bearer {access_token}',
-        'Accept': 'application/json',
-    }
-    
-    try:
-        response = requests.get(url, headers=headers)
-        response.raise_for_status()
-        data = response.json()
-
-        rows = data.get("Rows", {}).get("Row", [])
-        for row in rows:
-            if row.get("group") == "NetIncome":
-                net_income = row.get("Summary", {}).get("ColData", [])[1].get("value")
-                if net_income is not None:
-                    net_income_float = float(net_income)
-                    formatted_net_income = '${:,.2f}'.format(net_income_float)
-                    return jsonify({"net_profit": formatted_net_income})
-
-        return jsonify({"error": "Net income data not found in the response"}), 404
-    except requests.exceptions.RequestException as e:
-        return jsonify({"error": f"Unable to get net profit: {str(e)}"}), 500
 
 if __name__ == '__main__':
     main()
